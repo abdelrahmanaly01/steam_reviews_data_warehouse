@@ -1,155 +1,165 @@
+﻿# Steam Reviews Data Lake
 
-# Steam Reviews Data Lake
+This project is designed for people interested in games and data. By using this data lake, we can answer questions such as which games are most liked and most played by genre, publisher, developer, and release date. It also helps us understand how user comments are affected by factors such as the number of games a user owns, hours played, and review frequency.
 
-This project is meant for people interested in games as well data
-by using this data lake we can answer some interesting  Questions like what is most liked and most played games by  genres, publishers, developers and release dates as well understanding how user comments get effected by games user owned, hours played and the frequency of user reviews.
+# Overview
+
+This project combines two public datasets from Steam and builds a scalable data pipeline for analytical use cases. The workflow starts with data ingestion and transformation in Spark, then loads the cleaned data into a Redshift data warehouse for easier querying and analysis.
+
+The project is intended to support analytical questions such as:
+
+- Which games receive the most positive reviews?
+- How do review patterns vary by genre, publisher, or developer?
+- How do gameplay time and ownership levels relate to user sentiment?
 
 # Datasets
 
-This project is based on two datasets sampled(scraped) from steam website and database.
+This project is based on two datasets from the Steam ecosystem, both gathered from public sources.
 
-_NOTE:_ dataset used in this project was sampled 2.4m from reviews dataset and
-the format changed from csv to parquet because i faced alot of technical issues manipulating the data
-from this file format.
+> Note: The review dataset used here was sampled to 2.4 million rows for development. The file format was changed from CSV to Parquet because handling large CSV files created technical issues during processing.
 
 ## Steam Reviews Dataset
-https://www.kaggle.com/datasets/forgemaster/steam-reviews-dataset
 
+Source: https://www.kaggle.com/datasets/forgemaster/steam-reviews-dataset
 
-Rating data from 6M unique users, with 15M reviews over 8,183 games
+This dataset includes review data for 6 million unique users, 15 million reviews, and 8,183 games.
 
-Content:
-
-Each row (review) contains information in the following order by column:
+Each review row contains the following fields:
 
 - steamid - the user's ID
 - appid - the ID of the game being reviewed
 - voted_up - true means it was a positive recommendation
-- votes_up - the number of other users who found this review helpful
-- votes_funny - the number of other users who found this review funny
+- votes_up - the number of other users who found the review helpful
+- votes_funny - the number of other users who found the review funny
 - weighted_vote_score - helpfulness score
-- playtime_forever - how many hours the user had played this game at retrieval
-- playtime_at_review - how many hours the user had played the game when writing this review
-- num_games_owned - the number of games this user owns
-- num_reviews - the number of reviews this user has written
-- review - the text of the written review
-- unix_timestamp_created - date the review was created (unix timestamp)
-- unix_timestamp_updated - date the review was last updated (unix timestamp)
+- playtime_forever - how many hours the user had played the game at retrieval time
+- playtime_at_review - how many hours the user had played the game when writing the review
+- num_games_owned - the number of games the user owns
+- num_reviews - the number of reviews the user has written
+- review - the text of the review
+- unix_timestamp_created - the date the review was created (Unix timestamp)
+- unix_timestamp_updated - the date the review was last updated (Unix timestamp)
 
-### The dataset as a whole contains:
-6,976,390 unique users
-15,437,471 reviews
-8,183 games reviewed
+### Dataset summary
 
-## Steam games complete dataset
+- 6,976,390 unique users
+- 15,437,471 reviews
+- 8,183 games reviewed
 
-https://www.kaggle.com/datasets/trolukovich/steam-games-complete-dataset
+## Steam Games Complete Dataset
 
-Content:
+Source: https://www.kaggle.com/datasets/trolukovich/steam-games-complete-dataset
 
-This dataset contains more than 40k games from steam shop with detailed data.
+This dataset contains more than 40,000 games from the Steam store with detailed metadata.
 
-- url - the hyper link to the application page
-- types - type of the product
-- name - name of the game or application
-- desc_snippet - game brieve description
-- recent_reviews - the most recent reviews direction when the data scraped(positive to negative)
-- all_reviews - overall reviews direction (positive to negative)
+Fields include:
+
+- url - the application page link
+- types - product type
+- name - the name of the game or application
+- desc_snippet - brief game description
+- recent_reviews - recent review sentiment (positive to negative)
+- all_reviews - overall review sentiment (positive to negative)
 - release_date - product release date
 - developer - game developers
-- publisher - games publishers
-- popular_tags - tags accossiated with the game
-- game_details - details of the game EX: multiplayer/single
-- languages - game languages
-- achievements - number of achievments 
+- publisher - game publishers
+- popular_tags - tags associated with the game
+- game_details - game details such as multiplayer or single-player
+- languages - supported languages
+- achievements - the number of achievements
 - genre - game genres
-- game_description - game detailed description
-- mature_content - whether the game have mature content or not
+- game_description - detailed game description
+- mature_content - whether the game contains mature content
 - minimum_requirements - minimum device requirements
-- recommended_requirements - recommended requirments 
-- original_price - game original price
-- discount_price - discount when data was scraped
+- recommended_requirements - recommended requirements
+- original_price - original price
+- discount_price - discounted price at the time the data was scraped
 
+# Data Model
 
+The selected architecture is a Galaxy schema because the data contains multivalued attributes that need to be broken into smaller sub-dimensions. This allows the warehouse to retain more information while keeping the analytical model flexible.
 
-# Data model  
+### Data dictionary
 
-The chosen data model is galaxy schema sense i needed to make sub-dimensons from the games dimensions table so we can gain more information from the multivalued columns.
-
-### Data dictionary 
 ![Data dictionary](images/data_dictionary.jpg)
-### galaxy schema
+
+### Galaxy schema
 
 ![Galaxy schema](images/galaxy.jpg)
 
+# Logical Architecture
 
-# Logical scenario
+The project has two main processes and two main tools. The first is ELT for building the Spark data lake; the second is ETL for moving the processed data into the data warehouse.
 
-The project contains to main processes and two tools  first we have elt which is the step for creating the spark data lake, as well the etl process to move the data to the data warehouse.
+- Spark is used for fast data manipulation and easier exploration during development. Not all cleaning and processing is intended to be done in Redshift.
+- Redshift is used for easier access by analysts and for smoother integration with downstream applications.
 
-*spark* is used for fast and easy manipulation of the data as well for data exploration in development phase sense, not all cleaning and processing of the data can be done on redshift.
+The review dataset contains approximately 15 million records, but only a 2.4 million-row sample was used for development.
 
-*Redshift* is used for easier access for normal users and easier integration with apps in development.
+### Development steps
 
-As mentioned the reviews data is about 15m reviews i used a sample of 2.4m only for the development of the project
+- Define the project scope and expected results
+- Search for suitable datasets with a common key to connect reviews to game metadata
+- Explore the sampled data using Spark to identify technical constraints early
+- Define the data model, using the Galaxy schema
+- Implement the ELT pipeline and validate it locally
+- Create a cloud Spark cluster and replace local variables with cloud-based ones
+- Submit the ELT job to the Spark cluster
+- Create the Redshift cluster and required tables
+- Run the ETL process
+- Run data quality checks
 
-_steps of development was:_
-- defining the scope of the project and what is the final results
-- searching for the appropriate datasets that at least have any common connection in between to be able to connect reviews to the games data, also searched the steamDB website and amazon datasets for games data but i couldn't find the required data,but finally i was able to find it on kaggle.
-- data exploration, at this part the sampled data could have been explored using _pandas_ library but i chosed to explore it using my local spark environment
-so i could discover the technical problems of spark earlier if existed.
-- data model definition, as mentioned in model i chosed the galaxy schema.
-- coding the project elt and testing it on local environment
-- creating the cloud spark cluster and replacing any local variables with cloud variables
-- submitting the elt script on the spark cluster
-- creating redshift cluster and the needed tables
-- run the etl process
-- run the data quality checks
+### Design considerations
 
+What if the data volume increased by 100x?
 
+- Increase the number of nodes in the cluster, or upgrade the processing power of the existing nodes by moving to a larger instance type such as `ds2.xlarge`.
 
-logical approach to this project under the following scenarios:
+What if the pipeline needed to run daily at 7:00 AM?
 
-The data was increased by 100x?
-- one way to go around this is increasing number nodes in the same cluster, another way is increasing the processing power of the existing nodes by using a higher tier of nodess like ds2.xlarg
-The pipelines would be run on a daily basis by 7 am every day?
-- i will use airflow schdular and set it in the dag configuration variables with @daily and set the start_time to  datetime(2023, 5, 18, 7, 0, 00) for example 
-The database needed to be accessed by 100+ people?
-- i would consider using one non relational(NoSql) solutions and Elastic Load Balancing (ELB) to handle this number of users requests 
+- Use Airflow scheduling and set the DAG schedule to `@daily` with a start time such as `datetime(2023, 5, 18, 7, 0, 0)`.
 
+What if the database needed to support 100+ users?
 
+- Consider using a NoSQL solution or a load-balanced architecture such as Elastic Load Balancing (ELB) to handle large numbers of concurrent requests.
 
-# Excecution
+# Execution
 
-to create your own data lake and data warehouse you should follow the next steps
+To build your own data lake and data warehouse, follow these steps:
 
-1- upload the needed data to S3
-2- create a EMR spark cluster on AWS
-3- submit the elt_spark_submission.py using spark-submit
-   >> ./spark-submit elt_spark_submission.py
-4- open the dwh.cfg and edit the variables with your credientials
-5- create a redshift cluster
-6- open the query editor and use the queries in the create_tables_sql_queries.sql
-7- run the etl_redshift.py
-8- run the data_quality_check.py to make sure your files are loaded successfully 
+1. Upload the required data to S3
+2. Create an EMR Spark cluster on AWS
+3. Submit the ELT script using Spark:
 
-# Future improvments
-this project was planned to use airflow and schedule the elt based on the year and month variables
-but i faced a lot of issues integrating airflow with spark and submitting the jobs, so the airflow tool will be added as soon as possible after solving this issues. 
+```bash
+./spark-submit elt_spark_submission.py
+```
 
+4. Open `dwh.cfg` and update the variables with your credentials
+5. Create a Redshift cluster
+6. Open the query editor and run the SQL in `create_tables_sql_queries.sql`
+7. Run `etl_redshift.py`
+8. Run `data_quality_check.py` to verify the files were loaded successfully
 
-## example for using the datawarehouse in analytics:
+# Future Improvements
 
-lets see the number of positive reviews on the top 5 game developers ?
-select  d.developers,count(*) 
-from 
-reviews r 
-join games_dimenson g on g.appid = r.app_key
-join developers_subdimenson d on  d.app_fk = g.appid
-where r.voted_up = true
-group by 1
-order by 2 desc
-limit 5 
+This project was originally planned to use Airflow to schedule ELT jobs based on year and month variables. However, there were technical challenges integrating Airflow with Spark and submitting jobs to the cluster. Once those issues are resolved, Airflow will be added to automate the pipeline.
 
-_the result_:
+# Example Analytics Query
+
+Here is an example of how the data warehouse can be used for analytics:
+
+```sql
+SELECT d.developers, COUNT(*)
+FROM reviews r
+JOIN games_dimension g ON g.appid = r.app_key
+JOIN developers_subdimension d ON d.app_fk = g.appid
+WHERE r.voted_up = true
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 5;
+```
+
+_Result:_
+
 ![Query results](images/Capture3.PNG)
