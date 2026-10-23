@@ -77,10 +77,10 @@ This dataset contains more than 40k games from steam shop with detailed data.
 The chosen data model is galaxy schema sense i needed to make sub-dimensons from the games dimensions table so we can gain more information from the multivalued columns.
 
 ### Data dictionary 
-![dictionary](https://drive.google.com/file/d/1-3axhAcb5E8mwpl1gAkaQbqPEOIp301d)
+![Data dictionary](images/data_dictionary.jpg)
 ### galaxy schema
 
-![galaxy_schema](https://drive.google.com/file/d/1-3ATgTlb6B9E92pZ3iqmuEm5UFTzTOzf)
+![Galaxy schema](images/galaxy.jpg)
 
 
 # Logical scenario
@@ -152,4 +152,4 @@ order by 2 desc
 limit 5 
 
 _the result_:
-![result](https://drive.google.com/file/d/1MFUrd0ltRLr9M6AiGzU0Xd-a7OY1T6sV)
+![Query results](images/Capture3.PNG)
